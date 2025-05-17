@@ -104,7 +104,7 @@ uint32_t BarColors[NUM_BARS] = {TFT_RED, TFT_GREEN, TFT_YELLOW, TFT_ORANGE, TFT_
 
 StatusBar* StatusBars[NUM_BARS];
 
-StatusBar* swoleBar = new StatusBar(140, 200, TFT_RED);
+StatusBar* swoleBar = new StatusBar(100, 140, TFT_RED);
 
 void makeStatusBars(int length, int gap){
   int x = 8;
@@ -124,7 +124,7 @@ uint8_t energy = 0;
 uint8_t fun = 0;
 uint8_t love = 0;
 
-uint8_t swole = 0;
+uint8_t swole = 50;
 uint8_t coins = 0;
 
 
@@ -334,7 +334,6 @@ void loop() {
 
 
     if(catShow){
-      Serial.println("Visible");
       cat.createSprite(BUFFER_W, BUFFER_H);
       cat.pushImage(0, 0, BUFFER_W, BUFFER_H, (uint16_t *) CatBuffer, 8);
       
@@ -578,6 +577,7 @@ void storeStats(){
   EEPROM.write(FUN_MEM, fun);
   EEPROM.write(LOVE_MEM, love);
   EEPROM.write(FIRST_BOOT_MEM, 0);
+  EEPROM.write(SWOLE_MEM, swole)
 
   EEPROM.commit();
 }
@@ -588,6 +588,8 @@ void zeroEEPROM(){
   EEPROM.write(ENERGY_MEM, 0);
   EEPROM.write(FUN_MEM, 0);
   EEPROM.write(LOVE_MEM, 0);
+  EEPROM.write(SWOLE_MEM, 0)
+
 
   EEPROM.commit();
 }
@@ -599,6 +601,7 @@ void loadStats(){
     energy = EEPROM.read(ENERGY_MEM);
     fun = EEPROM.read(FUN_MEM);
     love = EEPROM.read(LOVE_MEM);
+    swole = EEPROM.read(SWOLE_MEM);
   }
 
 }
@@ -755,13 +758,13 @@ int manageBackground(){
       cat_bowl.pushToSprite(&background, POS_BOWL, 115, TFT_BLACK);
       break;
     case Gym:
-      swoleBar->updateState(50); // TODO: Put real swole value here.
+      swoleBar->updateState(swole); // TODO: Put real swole value here.
       drawSingleBar(swoleBar);
       break;
 
     case Shop:
-      swoleBar->updateState(100); // TODO: Put real swole value here.
-      drawSingleBar(swoleBar);
+      background.drawArc(100, 20, 10, 0, 180, TFT_YELLOW, TFT_BLACK, true);
+
       break;
 
     default:
@@ -779,7 +782,9 @@ void checkContext(){
       catShow = true;
       break;
     case GYM:
+      catShow = false;
       currBackground = Gym;
+      break;
     case SHOP:
       catShow = false;
       currBackground = Shop;
@@ -1175,10 +1180,12 @@ void LongClickHandler(Button2 & b){
     }
   }
   else if (currContext == FITNESS_MENU){
-    if(longButtonDir = LEFT){
+    if(longButtonDir == LEFT){
       currContext = GYM;
+      Serial.println("GYM GYM GYM GYM");
     }
     else {
+      Serial.println("SHOP SHOP SHOP SHOP");
       currContext = SHOP;
     }
   }

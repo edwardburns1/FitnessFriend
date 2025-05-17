@@ -7,6 +7,7 @@ class FitnessManager {
     uint32_t exerciseXP;
     bool workingOut = false;
 
+
   public:
     uint32_t getStepEnergy(){
       uint32_t gainedEnergy = this->recentSteps / STEP_CONVERSION_FACTOR;
