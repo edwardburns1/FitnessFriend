@@ -29,6 +29,8 @@
 #include "Panel.h"
 #include "bongo.h"
 
+// Swole Cat Stills
+#include "SwoleCat.h"
 
 // Classes
 #include "Animation.h"
@@ -77,6 +79,8 @@ TFT_eSprite exitTextSprite = TFT_eSprite(&tft);
 
 TFT_eSprite bongoSprite = TFT_eSprite(&tft);
 
+TFT_eSprite swoleCat = TFT_eSprite(&tft);
+
 
 
 
@@ -124,7 +128,7 @@ uint8_t energy = 0;
 uint8_t fun = 0;
 uint8_t love = 0;
 
-uint8_t swole = 50;
+uint8_t swole = 80;
 uint8_t coins = 0;
 
 
@@ -133,6 +137,7 @@ uint8_t coins = 0;
 #define ENERGY_MEM 2
 #define FUN_MEM    3
 #define LOVE_MEM   4
+#define SWOLE_MEM  5
 #define FIRST_BOOT_MEM 5
 const int EEPROM_EN = 1;
 int FIRST_BOOT = 1;
@@ -165,6 +170,13 @@ uint8_t * ScratchBuffer = new uint8_t[SCRATCH_H * SCRATCH_SCALE * SCRATCH_W * SC
 #define POS_BOWL 200
 #define POS_SCRATCHER 180
 uint8_t test = 100;
+
+#define POS_SWOLE 100
+#define SWOLE_SCALE 3
+#define SWOLE_H 28
+#define SWOLE_W 36
+uint8_t * SwoleBuffer = new uint8_t[SWOLE_H * SWOLE_W * SWOLE_SCALE * SWOLE_SCALE];
+
 
 #define AI_TIMEOUT 30 * 1000
 int AI_MODE = 0;
@@ -204,6 +216,10 @@ void setup() {
   upscale(scratcher, SCRATCH_W, SCRATCH_H, ScratchBuffer, SCRATCH_W * SCRATCH_SCALE, SCRATCH_H * SCRATCH_SCALE, SCRATCH_SCALE, 1);
   cat_scratcher.pushImage(0, 0, SCRATCH_W * SCRATCH_SCALE, SCRATCH_H * SCRATCH_SCALE, (uint16_t *) ScratchBuffer, 8);
 
+
+  swoleCat.setColorDepth(8);
+
+
   battery.createSprite(25, 13);
 
   textSprite.setColorDepth(8);
@@ -230,6 +246,7 @@ void setup() {
   bongoSprite.createSprite(60, 20);
   bongoSprite.pushImage(0, 0, 40, 13, (uint16_t *) bongo, 8);
   
+
   button_init();
   makeStatusBars(25, 18);
   StatusBars[0]->updateState(test);
@@ -278,9 +295,9 @@ int pos_x;
 int buttonDir;
 enum BUTTON_ID {LEFT, RIGHT};
 
-#define numBackgrounds 3
+#define numBackgrounds 5
 enum BACKGROUND {Field, Dock, House, Gym, Shop};
-int back_offset[numBackgrounds] = {0, -8, 2};
+int back_offset[numBackgrounds] = {0, -8, 2, 0, 0};
 
 int currBackground = Field;
 
@@ -577,7 +594,7 @@ void storeStats(){
   EEPROM.write(FUN_MEM, fun);
   EEPROM.write(LOVE_MEM, love);
   EEPROM.write(FIRST_BOOT_MEM, 0);
-  EEPROM.write(SWOLE_MEM, swole)
+  EEPROM.write(SWOLE_MEM, swole);
 
   EEPROM.commit();
 }
@@ -588,7 +605,7 @@ void zeroEEPROM(){
   EEPROM.write(ENERGY_MEM, 0);
   EEPROM.write(FUN_MEM, 0);
   EEPROM.write(LOVE_MEM, 0);
-  EEPROM.write(SWOLE_MEM, 0)
+  EEPROM.write(SWOLE_MEM, 0);
 
 
   EEPROM.commit();
@@ -601,7 +618,7 @@ void loadStats(){
     energy = EEPROM.read(ENERGY_MEM);
     fun = EEPROM.read(FUN_MEM);
     love = EEPROM.read(LOVE_MEM);
-    swole = EEPROM.read(SWOLE_MEM);
+    // swole = EEPROM.read(SWOLE_MEM);
   }
 
 }
@@ -736,13 +753,9 @@ int manageBackground(){
     break;
   }
 
-  if (currBackground < 3){
-    background.pushImage(0, 0, 240, 135, (uint16_t *) back_image[currBackground], 8);
-  }
-  else {
-    // TODO
-    background.fillSprite(TFT_BLUE);
-  }
+  background.pushImage(0, 0, 240, 135, (uint16_t *) back_image[currBackground], 8);
+  
+
 
   switch(currBackground){
     case Field:
@@ -758,12 +771,17 @@ int manageBackground(){
       cat_bowl.pushToSprite(&background, POS_BOWL, 115, TFT_BLACK);
       break;
     case Gym:
+      
+      upscale(swole_cat[getSwoleLevel(swole)], SWOLE_W, SWOLE_H, SwoleBuffer, SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE, SWOLE_SCALE, 1);
+      swoleCat.createSprite(SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE); // TODO, upscale
+      swoleCat.pushImage(0, 0 ,SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE, (uint16_t *) SwoleBuffer, 8);
+      swoleCat.pushToSprite(&background, 66, 35, TFT_BLACK);
       swoleBar->updateState(swole); // TODO: Put real swole value here.
       drawSingleBar(swoleBar);
       break;
 
     case Shop:
-      background.drawArc(100, 20, 10, 0, 180, TFT_YELLOW, TFT_BLACK, true);
+      background.drawArc(100, 20, 10, 5, 0, 90, TFT_YELLOW, TFT_YELLOW, true);
 
       break;
 
@@ -775,6 +793,17 @@ int manageBackground(){
   return 0;
 }
 
+int getSwoleLevel(uint8_t currSwole){
+  if(currSwole < 25){
+    return 0;
+  }
+  else if (currSwole < 50){
+    return 1;
+  }
+  else {
+    return 2;
+  }
+}
 void checkContext(){
   Serial.println(currContext);
   switch(currContext){
