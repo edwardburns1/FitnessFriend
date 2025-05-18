@@ -36,6 +36,7 @@
 // Classes
 #include "Animation.h"
 #include "StatusBar.h"
+#include "Consumable.h"
 #include <Button2.h>
 
 // BEGIN BAT
@@ -89,6 +90,8 @@ TFT_eSprite coinPanel = TFT_eSprite(&tft);
 TFT_eSprite coinSprite = TFT_eSprite(&tft);
 
 
+Consumable* yarn = new Consumable(3);
+Consumable* catnip = new Consumable(1);
 
 AnimationBase* AnimationList[NUM_ANIMATIONS] = {
   new Animation<20, 20, 8>(idle1),
@@ -135,7 +138,7 @@ uint8_t fun = 0;
 uint8_t love = 0;
 
 uint8_t swole = 80;
-uint8_t numCoins = 0;
+int numCoins = 10;
 
 
 #define HUNGER_MEM 0
@@ -274,6 +277,8 @@ void setup() {
   coinSprite.setColorDepth(8);
   coinSprite.createSprite(16, 16);
   coinSprite.pushImage(0, 0, 16, 16, (uint16_t *) coin, 8);
+
+
 
   button_init();
   makeStatusBars(25, 18);
@@ -815,7 +820,6 @@ int manageBackground(){
       panelTextSprite.drawString(String("Catnip"), 0, 0, 2);
       panelTextSprite.pushToSprite(&catnipPanel, 10, 3, TFT_BLACK);
 
-
       panelTextSprite.fillSprite(TFT_BLACK);
       panelTextSprite.drawString(String("Yarn"), 0, 0, 2);
       panelTextSprite.pushToSprite(&yarnPanel, 15, 3, TFT_BLACK);
@@ -823,13 +827,14 @@ int manageBackground(){
       catnipPanel.pushToSprite(&background, 25, 70, TFT_BLACK);
       yarnPanel.pushToSprite(&background, 155, 70, TFT_BLACK);
 
-      coinPanel.pushToSprite(&background, 0, 0, TFT_BLACK);
 
       background.drawNumber(1, 45, 50, 2);
       coinSprite.pushToSprite(&background, 60, 50, TFT_BLACK);
 
       background.drawNumber(3, 175, 50, 2);
       coinSprite.pushToSprite(&background, 190, 50, TFT_BLACK);
+
+      coinPanel.pushImage(0, 0, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, (uint16_t *) PanelBuffer, 8);
 
       panelTextSprite.fillSprite(TFT_BLACK);
       panelTextSprite.drawNumber(numCoins, 0, 0, 2);
@@ -1273,6 +1278,14 @@ void LongClickHandler(Button2 & b){
     else {
       Serial.println("SHOP SHOP SHOP SHOP");
       currContext = SHOP;
+    }
+  }
+  else if(currContext == SHOP){
+    if(longButtonDir == LEFT){
+      catnip->purchase(numCoins);
+    }
+    else {
+      yarn->purchase(numCoins);
     }
   }
 
