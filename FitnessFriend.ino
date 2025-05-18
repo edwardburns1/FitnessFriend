@@ -28,6 +28,7 @@
 #include "battery.h"
 #include "Panel.h"
 #include "bongo.h"
+#include "coin.h"
 
 // Swole Cat Stills
 #include "SwoleCat.h"
@@ -81,6 +82,11 @@ TFT_eSprite bongoSprite = TFT_eSprite(&tft);
 
 TFT_eSprite swoleCat = TFT_eSprite(&tft);
 
+TFT_eSprite catnipPanel = TFT_eSprite(&tft);
+TFT_eSprite yarnPanel = TFT_eSprite(&tft);
+TFT_eSprite coinPanel = TFT_eSprite(&tft);
+
+TFT_eSprite coinSprite = TFT_eSprite(&tft);
 
 
 
@@ -129,7 +135,7 @@ uint8_t fun = 0;
 uint8_t love = 0;
 
 uint8_t swole = 80;
-uint8_t coins = 0;
+uint8_t numCoins = 0;
 
 
 #define HUNGER_MEM 0
@@ -177,6 +183,10 @@ uint8_t test = 100;
 #define SWOLE_W 36
 uint8_t * SwoleBuffer = new uint8_t[SWOLE_H * SWOLE_W * SWOLE_SCALE * SWOLE_SCALE];
 
+#define PANEL_SCALE 1
+#define PANEL_H 20
+#define PANEL_W 60
+uint8_t * PanelBuffer = new uint8_t[PANEL_W * PANEL_H * PANEL_SCALE * PANEL_SCALE];
 
 #define AI_TIMEOUT 30 * 1000
 int AI_MODE = 0;
@@ -242,10 +252,28 @@ void setup() {
   exitTextSprite.createSprite(60, 20);
   exitTextSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
+  catnipPanel.setColorDepth(8);
+  catnipPanel.createSprite(PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE);
+  upscale(panel, PANEL_W, PANEL_H, PanelBuffer, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, PANEL_SCALE, 1);
+  catnipPanel.pushImage(0, 0, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, (uint16_t *) PanelBuffer, 8);
+
+  yarnPanel.setColorDepth(8);
+  yarnPanel.createSprite(PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE);
+  yarnPanel.pushImage(0, 0, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, (uint16_t *) PanelBuffer, 8);
+  
+  
+  coinPanel.setColorDepth(8);
+  coinPanel.createSprite(PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE);
+  coinPanel.pushImage(0, 0, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, (uint16_t *) PanelBuffer, 8);
+
   bongoSprite.setColorDepth(8);
   bongoSprite.createSprite(60, 20);
   bongoSprite.pushImage(0, 0, 40, 13, (uint16_t *) bongo, 8);
   
+
+  coinSprite.setColorDepth(8);
+  coinSprite.createSprite(16, 16);
+  coinSprite.pushImage(0, 0, 16, 16, (uint16_t *) coin, 8);
 
   button_init();
   makeStatusBars(25, 18);
@@ -781,7 +809,36 @@ int manageBackground(){
       break;
 
     case Shop:
-      background.drawArc(100, 20, 10, 5, 0, 90, TFT_YELLOW, TFT_YELLOW, true);
+
+    
+      panelTextSprite.fillSprite(TFT_BLACK);
+      panelTextSprite.drawString(String("Catnip"), 0, 0, 2);
+      panelTextSprite.pushToSprite(&catnipPanel, 10, 3, TFT_BLACK);
+
+
+      panelTextSprite.fillSprite(TFT_BLACK);
+      panelTextSprite.drawString(String("Yarn"), 0, 0, 2);
+      panelTextSprite.pushToSprite(&yarnPanel, 15, 3, TFT_BLACK);
+
+      catnipPanel.pushToSprite(&background, 25, 70, TFT_BLACK);
+      yarnPanel.pushToSprite(&background, 155, 70, TFT_BLACK);
+
+      coinPanel.pushToSprite(&background, 0, 0, TFT_BLACK);
+
+      background.drawNumber(1, 45, 50, 2);
+      coinSprite.pushToSprite(&background, 60, 50, TFT_BLACK);
+
+      background.drawNumber(3, 175, 50, 2);
+      coinSprite.pushToSprite(&background, 190, 50, TFT_BLACK);
+
+      panelTextSprite.fillSprite(TFT_BLACK);
+      panelTextSprite.drawNumber(numCoins, 0, 0, 2);
+      panelTextSprite.pushToSprite(&coinPanel, 10, 2, TFT_BLACK);
+
+      coinPanel.pushToSprite(&background, 0, 0, TFT_BLACK);
+      coinSprite.pushToSprite(&background, 35, 2, TFT_BLACK);
+
+
 
       break;
 
@@ -853,7 +910,7 @@ void checkContext(){
       // Exit Panel
       exitTextSprite.fillSprite(TFT_BLACK);
       exitTextSprite.drawString(String("Shop"), 0, 0, 2);
-      exitTextSprite.pushToSprite(&exitSprite, 20, 3, TFT_BLACK);
+      exitTextSprite.pushToSprite(&exitSprite, 15, 3, TFT_BLACK);
 
       exitSprite.pushToSprite(&background, 5, 110, TFT_BLACK);
       break;
