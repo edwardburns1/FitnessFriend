@@ -38,6 +38,7 @@
 #include "StatusBar.h"
 #include "Consumable.h"
 #include <Button2.h>
+#include "FitnessManager.h"
 
 // BEGIN BAT
 #include <esp_adc_cal.h>
@@ -90,6 +91,8 @@ TFT_eSprite coinPanel = TFT_eSprite(&tft);
 TFT_eSprite coinSprite = TFT_eSprite(&tft);
 
 
+FitnessManager* fitness = new FitnessManager();
+
 Consumable* yarn = new Consumable(3);
 Consumable* catnip = new Consumable(1);
 
@@ -136,9 +139,8 @@ uint8_t thirst = 0;
 uint8_t energy = 0;
 uint8_t fun = 0;
 uint8_t love = 0;
-
 uint8_t swole = 80;
-int numCoins = 10;
+uint8_t numCoins = 10;
 
 
 #define HUNGER_MEM 0
@@ -146,8 +148,11 @@ int numCoins = 10;
 #define ENERGY_MEM 2
 #define FUN_MEM    3
 #define LOVE_MEM   4
-#define SWOLE_MEM  5
 #define FIRST_BOOT_MEM 5
+#define SWOLE_MEM  6
+#define COINS_MEM 7
+#define CONSUMABLES_MEM 8
+#define STEPS_MEM 9
 const int EEPROM_EN = 1;
 int FIRST_BOOT = 1;
 #define EEPROM_SIZE 6
@@ -418,6 +423,7 @@ void loop() {
     }
 
   }
+  energy_loop();
   btn1.loop();
   btn2.loop();
 
@@ -617,6 +623,13 @@ void manageLove(){
   }
 
 }
+
+uint8_t consumable_storing(){
+  if(yarn->active && catnip->active) return 3;
+  else if (yarn->active) return 2;
+  else if (catnip->active) return 1;
+  else return 0;
+}
 void storeStats(){
   if(!EEPROM_EN){
     return;
@@ -629,6 +642,10 @@ void storeStats(){
   EEPROM.write(FIRST_BOOT_MEM, 0);
   EEPROM.write(SWOLE_MEM, swole);
 
+  EEPROM.write(COINS_MEM, numCoins);
+  EEPROM.write(CONSUMABLES_MEM, consumable_storing());
+  EEPROM.put(STEPS_MEM, fitness->totalSteps);
+
   EEPROM.commit();
 }
 
@@ -639,6 +656,8 @@ void zeroEEPROM(){
   EEPROM.write(FUN_MEM, 0);
   EEPROM.write(LOVE_MEM, 0);
   EEPROM.write(SWOLE_MEM, 0);
+  EEPROM.write(COINS_MEM, 0);
+
 
 
   EEPROM.commit();
@@ -651,7 +670,14 @@ void loadStats(){
     energy = EEPROM.read(ENERGY_MEM);
     fun = EEPROM.read(FUN_MEM);
     love = EEPROM.read(LOVE_MEM);
-    // swole = EEPROM.read(SWOLE_MEM);
+    swole = EEPROM.read(SWOLE_MEM);
+      
+    numCoins = EEPROM.read(COINS_MEM);
+    uint8_t consumables = EEPROM.read(CONSUMABLES_MEM);
+    yarn->active = consumables & 0b10;
+    catnip->active = consumables & 0b1;
+
+    EEPROM.get(STEPS_MEM, fitness->totalSteps);
   }
 
 }
@@ -805,6 +831,19 @@ int manageBackground(){
       break;
     case Gym:
       
+      coinPanel.pushImage(0, 0, PANEL_W * PANEL_SCALE, PANEL_H * PANEL_SCALE, (uint16_t *) PanelBuffer, 8);
+      panelTextSprite.fillSprite(TFT_BLACK);
+      if(fitness->workingOut){
+        panelTextSprite.drawString(String("Stop?"), 0, 0, 2);
+      }
+      else {
+
+        panelTextSprite.drawString(String("Start?"), 0, 0, 2);
+      }
+      
+      panelTextSprite.pushToSprite(&coinPanel, 10, 2, TFT_BLACK);
+      coinPanel.pushToSprite(&background, 0, 0, TFT_BLACK);
+
       upscale(swole_cat[getSwoleLevel(swole)], SWOLE_W, SWOLE_H, SwoleBuffer, SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE, SWOLE_SCALE, 1);
       swoleCat.createSprite(SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE); // TODO, upscale
       swoleCat.pushImage(0, 0 ,SWOLE_W * SWOLE_SCALE, SWOLE_H * SWOLE_SCALE, (uint16_t *) SwoleBuffer, 8);
@@ -814,8 +853,6 @@ int manageBackground(){
       break;
 
     case Shop:
-
-    
       panelTextSprite.fillSprite(TFT_BLACK);
       panelTextSprite.drawString(String("Catnip"), 0, 0, 2);
       panelTextSprite.pushToSprite(&catnipPanel, 10, 3, TFT_BLACK);
@@ -867,7 +904,6 @@ int getSwoleLevel(uint8_t currSwole){
   }
 }
 void checkContext(){
-  Serial.println(currContext);
   switch(currContext){
     case GAME:
       catShow = true;
@@ -1018,11 +1054,11 @@ void updateCatStats(){
       break;
 
     // TODO: Remove this: instead use the fitness manager to update energy.
-    case SLEEPING:
-      if(energy != 100){
-        energy += 1;
-      }
-      break;
+    // case SLEEPING:
+    //   if(energy != 100){
+    //     energy += 1;
+    //   }
+    //   break;
     case WALKING:
       if(energy > 0 ){
         eng_dec++;
@@ -1055,6 +1091,16 @@ void updateCatStats(){
   }
 }
 
+unsigned long last_sample;
+int sample_period = 15 * 1000;
+void energy_loop(){
+  if(millis() - last_sample > sample_period){
+    last_sample = millis();
+    energy += fitness->getStepEnergy();
+    energy = min(energy, uint8_t(100));
+  }
+
+}
 
 void decr_stat(uint8_t &stat){
   long num = random(1000);
@@ -1286,6 +1332,21 @@ void LongClickHandler(Button2 & b){
     }
     else {
       yarn->purchase(numCoins);
+    }
+  }
+  else if(currContext == GYM){
+    if(longButtonDir == LEFT){
+      if(fitness->workingOut){
+        Serial.println("Stopping Workout");
+        swole += fitness->stopWorkout();
+        swole = min(swole, uint8_t(100));
+          
+      }
+      else{
+        Serial.println("Starting Workout");
+        fitness->startWorkout();      
+        Serial.println("Finished store??");
+      }
     }
   }
 
