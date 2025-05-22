@@ -39,6 +39,7 @@
 #include "Consumable.h"
 #include <Button2.h>
 #include "FitnessManager.h"
+#include "Accel.h"
 
 // BEGIN BAT
 #include <esp_adc_cal.h>
@@ -139,7 +140,7 @@ uint8_t thirst = 0;
 uint8_t energy = 0;
 uint8_t fun = 0;
 uint8_t love = 0;
-uint8_t swole = 80;
+uint8_t swole = 0;
 uint8_t numCoins = 10;
 
 
@@ -153,8 +154,8 @@ uint8_t numCoins = 10;
 #define COINS_MEM 7
 #define CONSUMABLES_MEM 8
 #define STEPS_MEM 9
-const int EEPROM_EN = 1;
-int FIRST_BOOT = 1;
+const int EEPROM_EN = 0;
+int FIRST_BOOT = 0;
 #define EEPROM_SIZE 6
 
 
@@ -305,6 +306,7 @@ void setup() {
   swoleBar->setWidth(10);
 
 
+  setup_accel();
   bootSequence();
   delay(3000);
 
@@ -423,6 +425,7 @@ void loop() {
     }
 
   }
+  steps_loop();
   energy_loop();
   btn1.loop();
   btn2.loop();
@@ -1091,6 +1094,20 @@ void updateCatStats(){
   }
 }
 
+unsigned long last_xl_sample;
+int xl_sample_period = 50;
+
+void steps_loop(){
+  if(millis() - last_xl_sample > xl_sample_period){
+
+    if(accel_loop()){
+      fitness->incrementSteps();
+    }
+    last_xl_sample = millis();
+
+  }
+
+}
 unsigned long last_sample;
 int sample_period = 15 * 1000;
 void energy_loop(){
@@ -1338,7 +1355,7 @@ void LongClickHandler(Button2 & b){
     if(longButtonDir == LEFT){
       if(fitness->workingOut){
         Serial.println("Stopping Workout");
-        swole += fitness->stopWorkout();
+        swole += fitness->stopWorkout(catnip->active, yarn->active);
         swole = min(swole, uint8_t(100));
           
       }

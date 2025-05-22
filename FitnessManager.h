@@ -1,10 +1,13 @@
-#define STEP_CONVERSION_FACTOR 25 // 100 steps is 1 energy
+#define STEP_CONVERSION_FACTOR 1 // 100 steps is 1 energy
+#define EXERCISE_FACTOR 1
+#define CATNIP_FACTOR 50
+#define YARN_FACTOR 25
 
 class FitnessManager {
   public:
     uint32_t totalSteps = 0;
     uint32_t recentSteps = 0;
-    uint8_t exerciseXP = 0;
+    uint32_t exerciseXP = 0;
     bool workingOut = false;
 
     void setSteps(uint32_t totalSteps){
@@ -19,18 +22,33 @@ class FitnessManager {
       return min(gainedEnergy, uint32_t(100));
     }
 
-    uint32_t updateSteps(uint32_t steps){
-      totalSteps += steps;
-      recentSteps += steps;
+    void incrementSteps(){
+      totalSteps += 1;
+      recentSteps += 1;
+      if(this->workingOut){
+        exerciseXP += 1;
+      }
     }
+
 
     void startWorkout(){
       this->workingOut = true;
     }
 
-    uint8_t stopWorkout(){
+    uint8_t stopWorkout(bool catnip, bool yarn){
       this->workingOut = false;
-      return min(exerciseXP, uint8_t(100));
+
+      uint8_t swole_gained;
+      if(yarn){
+        swole_gained = exerciseXP / YARN_FACTOR;   
+      }
+      else if (catnip){
+        swole_gained = exerciseXP / CATNIP_FACTOR;
+      }
+      else {
+        swole_gained = exerciseXP / EXERCISE_FACTOR;
+      }
+      return min(swole_gained, uint8_t(100));
     }
 
 };
