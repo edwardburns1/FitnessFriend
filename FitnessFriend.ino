@@ -1,5 +1,7 @@
 #include <TFT_eSPI.h>
 #include <EEPROM.h>
+#include "WiFi.h"
+#include <HTTPClient.h>
 
 // Background Memory
 #include "background.h"
