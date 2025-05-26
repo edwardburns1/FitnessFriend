@@ -1,7 +1,7 @@
 #define STEP_CONVERSION_FACTOR 1 // 100 steps is 1 energy
-#define EXERCISE_FACTOR 1
-#define CATNIP_FACTOR 50
-#define YARN_FACTOR 25
+#define EXERCISE_FACTOR 10
+#define CATNIP_FACTOR 5
+#define YARN_FACTOR 2
 
 class FitnessManager {
   public:

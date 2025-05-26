@@ -42,6 +42,7 @@
 #include <Button2.h>
 #include "FitnessManager.h"
 #include "Accel.h"
+#include "WebData.h"
 
 // BEGIN BAT
 #include <esp_adc_cal.h>
@@ -310,7 +311,7 @@ void setup() {
 
   setup_accel();
   bootSequence();
-  delay(3000);
+  wifi_setup();
 
 }
 
@@ -377,7 +378,7 @@ void loop() {
     }
     manageState();
 
-    Serial.println(pos_x);
+    // Serial.println(pos_x);
     manageBackground();
     updateCatStats();
 
@@ -1359,6 +1360,7 @@ void LongClickHandler(Button2 & b){
         Serial.println("Stopping Workout");
         swole += fitness->stopWorkout(catnip->active, yarn->active);
         swole = min(swole, uint8_t(100));
+        sendFitnessData(fitness->totalSteps, swole);
           
       }
       else{
